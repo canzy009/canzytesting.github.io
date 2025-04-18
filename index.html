@@ -1,0 +1,772 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Canzy-Xtr Hex Editor</title>
+    <style>
+        :root {
+            --primary: #2a9d8f;
+            --secondary: #264653;
+            --accent: #e76f51;
+            --text: #e0e0e0;
+            --bg-dark: #121212;
+            --bg-darker: #0a0a0a;
+        }
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Consolas', monospace;
+        }
+        
+        body {
+            background-color: var(--bg-dark);
+            color: var(--text);
+            display: flex;
+            flex-direction: column;
+            height: 100vh;
+            overflow: hidden;
+        }
+        
+        .header {
+            background-color: var(--secondary);
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid var(--primary);
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .header h1 {
+            font-size: 24px;
+            color: var(--text);
+            position: relative;
+            display: inline-block;
+            z-index: 2;
+        }
+        
+        .header h1::after {
+            content: "";
+            position: absolute;
+            left: 0;
+            bottom: -3px;
+            width: 100%;
+            height: 3px;
+            background-color: var(--accent);
+            transform: scaleX(0);
+            transform-origin: left;
+            animation: underlineAnimation 2s forwards;
+        }
+        
+        @keyframes underlineAnimation {
+            to {
+                transform: scaleX(1);
+            }
+        }
+        
+        .header-right {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+        
+        .status {
+            background-color: rgba(0, 0, 0, 0.3);
+            padding: 5px 10px;
+            border-radius: 4px;
+            border-left: 3px solid var(--primary);
+            font-size: 14px;
+        }
+
+        .icons {
+            display: flex;
+            gap: 15px;
+        }
+        
+        .icon-btn {
+            background: none;
+            border: none;
+            color: var(--text);
+            cursor: pointer;
+            font-size: 18px;
+            transition: color 0.3s, transform 0.2s;
+        }
+        
+        .icon-btn:hover {
+            color: var(--primary);
+            transform: scale(1.1);
+        }
+        
+        .main-container {
+            display: flex;
+            flex-direction: column;
+            flex: 1;
+            overflow: hidden;
+        }
+        
+        .toolbar {
+            background-color: var(--bg-darker);
+            padding: 10px 20px;
+            display: flex;
+            gap: 10px;
+            overflow-x: auto;
+            border-bottom: 1px solid #333;
+        }
+        
+        .tool-btn {
+            background-color: var(--secondary);
+            color: var(--text);
+            border: none;
+            border-radius: 4px;
+            padding: 8px 12px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
+        
+        .tool-btn:hover {
+            background-color: var(--primary);
+            transform: translateY(-2px);
+        }
+        
+        .content {
+            display: flex;
+            flex: 1;
+            overflow: hidden;
+        }
+        
+        .sidebar {
+            width: 220px;
+            background-color: var(--bg-darker);
+            border-right: 1px solid #333;
+            padding: 15px;
+            overflow-y: auto;
+        }
+        
+        .sidebar-title {
+            font-size: 14px;
+            color: var(--primary);
+            margin-bottom: 10px;
+            border-bottom: 1px solid #333;
+            padding-bottom: 5px;
+        }
+        
+        .file-info {
+            margin-bottom: 15px;
+        }
+        
+        .file-info div {
+            font-size: 13px;
+            margin-bottom: 5px;
+            display: flex;
+            justify-content: space-between;
+        }
+        
+        .file-info span {
+            color: #888;
+        }
+        
+        .hex-view {
+            flex: 1;
+            overflow: auto;
+            padding: 15px;
+            position: relative;
+        }
+        
+        .hex-content {
+            font-family: 'Consolas', monospace;
+            font-size: 14px;
+            line-height: 1.6;
+            opacity: 0;
+            animation: fadeIn 1s forwards;
+            animation-delay: 1.2s;
+        }
+        
+        @keyframes fadeIn {
+            to {
+                opacity: 1;
+            }
+        }
+        
+        .hex-row {
+            margin-bottom: 6px;
+            display: flex;
+        }
+        
+        .address {
+            color: var(--primary);
+            width: 100px;
+            user-select: none;
+        }
+        
+        .hex-bytes {
+            flex: 2;
+            padding-right: 20px;
+        }
+        
+        .hex-byte {
+            display: inline-block;
+            width: 25px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        
+        .hex-byte:hover {
+            color: var(--accent);
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+        }
+        
+        .hex-byte.active {
+            color: var(--accent);
+            background-color: rgba(255, 255, 255, 0.15);
+            border-radius: 3px;
+        }
+        
+        .ascii {
+            flex: 1;
+            color: #888;
+        }
+        
+        .ascii-char {
+            display: inline-block;
+            width: 10px;
+            text-align: center;
+        }
+        
+        .footer {
+            background-color: var(--secondary);
+            padding: 8px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 1px solid #333;
+            font-size: 13px;
+        }
+        
+        .position-info {
+            display: flex;
+            gap: 20px;
+        }
+        
+        .command-input {
+            background-color: var(--bg-darker);
+            border: 1px solid #333;
+            padding: 5px 10px;
+            color: var(--text);
+            border-radius: 4px;
+            width: 300px;
+            margin-right: 10px;
+        }
+        
+        .command-input::placeholder {
+            color: #666;
+        }
+        
+        .command-input:focus {
+            outline: none;
+            border-color: var(--primary);
+        }
+        
+        /* Loading Animation */
+        .loading-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: var(--bg-dark);
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            animation: fadeOut 0.5s forwards;
+            animation-delay: 2.5s;
+        }
+        
+        @keyframes fadeOut {
+            to {
+                opacity: 0;
+                visibility: hidden;
+            }
+        }
+        
+        .loading-text {
+            font-size: 24px;
+            margin-bottom: 20px;
+            overflow: hidden;
+            white-space: nowrap;
+            width: 0;
+            animation: typing 1.5s steps(30, end) forwards;
+        }
+        
+        @keyframes typing {
+            to {
+                width: 100%;
+            }
+        }
+        
+        .progress-container {
+            width: 80%;
+            max-width: 400px;
+            height: 10px;
+            background-color: #333;
+            border-radius: 5px;
+            overflow: hidden;
+            position: relative;
+        }
+        
+        .progress-bar {
+            height: 100%;
+            width: 0;
+            background: linear-gradient(90deg, var(--primary), var(--accent));
+            border-radius: 5px;
+            animation: progress 2s ease-in-out forwards;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .progress-bar::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(
+                90deg,
+                rgba(255, 255, 255, 0),
+                rgba(255, 255, 255, 0.2),
+                rgba(255, 255, 255, 0)
+            );
+            transform: translateX(-100%);
+            animation: shimmer 1.5s infinite;
+        }
+        
+        @keyframes progress {
+            0% { width: 0; }
+            50% { width: 40%; }
+            75% { width: 70%; }
+            100% { width: 100%; }
+        }
+        
+        @keyframes shimmer {
+            100% { transform: translateX(100%); }
+        }
+        
+        .progress-percent {
+            position: absolute;
+            top: 15px;
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-size: 14px;
+            color: var(--text);
+        }
+        
+        .loading-info {
+            margin-top: 30px;
+            font-size: 14px;
+            color: #888;
+            opacity: 0;
+            animation: fadeInInfo 0.5s forwards;
+            animation-delay: 1s;
+        }
+        
+        @keyframes fadeInInfo {
+            to { opacity: 1; }
+        }
+        
+        /* Terminal-like animations */
+        .terminal-entry {
+            margin: 5px 0;
+            white-space: nowrap;
+            overflow: hidden;
+            width: 0;
+            animation: terminalTyping 1s forwards;
+        }
+        
+        @keyframes terminalTyping {
+            to { width: 100%; }
+        }
+        
+        .delay-1 { animation-delay: 0.2s; }
+        .delay-2 { animation-delay: 0.4s; }
+        .delay-3 { animation-delay: 0.6s; }
+        
+        /* Context menu */
+        .context-menu {
+            position: fixed;
+            background-color: var(--bg-darker);
+            border: 1px solid #333;
+            border-radius: 4px;
+            width: 200px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+            z-index: 100;
+            display: none;
+        }
+        
+        .context-menu ul {
+            list-style: none;
+        }
+        
+        .context-menu li {
+            padding: 8px 15px;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .context-menu li:hover {
+            background-color: var(--secondary);
+        }
+        
+        .context-menu li:not(:last-child) {
+            border-bottom: 1px solid #333;
+        }
+        
+        .context-menu-icon {
+            font-size: 14px;
+            color: var(--primary);
+        }
+        
+        /* Modified hex bytes */
+        .hex-byte.modified {
+            color: var(--accent);
+            font-weight: bold;
+        }
+        
+        /* Status message */
+        .status-message {
+            position: fixed;
+            bottom: 50px;
+            right: 20px;
+            background-color: var(--primary);
+            color: var(--text);
+            padding: 10px 20px;
+            border-radius: 4px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            transform: translateY(100px);
+            opacity: 0;
+            transition: all 0.3s;
+            z-index: 100;
+        }
+        
+        .status-message.show {
+            transform: translateY(0);
+            opacity: 1;
+        }
+        
+        /* Animation for binary rain effect */
+        .binary-rain {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            z-index: 1;
+            opacity: 0.1;
+            overflow: hidden;
+        }
+        
+        .binary-column {
+            position: absolute;
+            top: -20px;
+            font-size: 12px;
+            color: var(--primary);
+            animation: binaryFall linear infinite;
+        }
+
+        @keyframes binaryFall {
+            to { transform: translateY(100vh); }
+        }
+    </style>
+</head>
+<body>
+    <!-- Loading Overlay -->
+    <div class="loading-overlay">
+        <div class="loading-text">Canzy-Xtr Initializing...</div>
+        <div class="progress-container">
+            <div class="progress-bar"></div>
+            <div class="progress-percent">0%</div>
+        </div>
+        <div class="loading-info">
+            <div class="terminal-entry delay-1">Loading kernel modules...</div>
+            <div class="terminal-entry delay-2">Initializing hex engine...</div>
+            <div class="terminal-entry delay-3">Preparing workspace...</div>
+        </div>
+    </div>
+    
+    <!-- Binary Rain Effect -->
+    <div class="binary-rain" id="binary-rain"></div>
+    
+    <!-- Header -->
+    <div class="header">
+        <h1>Canzy-Xtr</h1>
+        <div class="header-right">
+            <div class="status">2354 dari 2356</div>
+            <div class="icons">
+                <button class="icon-btn">⚙️</button>
+                <button class="icon-btn">📋</button>
+                <button class="icon-btn">⚡</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Main Container -->
+    <div class="main-container">
+        <!-- Toolbar -->
+        <div class="toolbar">
+            <button class="tool-btn">Binary Hex Editor</button>
+            <button class="tool-btn">Changelogs Beta</button>
+            <button class="tool-btn">Add Load Library</button>
+            <button class="tool-btn">Bytes Hex Editor</button>
+            <button class="tool-btn">Add Strings Search</button>
+            <button class="tool-btn">Add Redo</button>
+            <button class="tool-btn">Add Display</button>
+            <button class="tool-btn">Improve Fix All Bugs</button>
+        </div>
+        
+        <!-- Content Area -->
+        <div class="content">
+            <!-- Sidebar -->
+            <div class="sidebar">
+                <h3 class="sidebar-title">File Information</h3>
+                <div class="file-info">
+                    <div>File Name: <span>libil2cpp.so</span></div>
+                    <div>Size: <span>97663776 bytes</span></div>
+                    <div>MD5: <span>a8f3e4c9d...</span></div>
+                    <div>Modified: <span>2025-04-18</span></div>
+                </div>
+                <h3 class="sidebar-title">Commands</h3>
+                <div class="terminal-entry">'help'</div>
+                <div class="terminal-entry">'?' Check</div>
+                <div class="terminal-entry">'exit' 'quit' Exit Program</div>
+            </div>
+            
+            <!-- Hex View -->
+            <div class="hex-view">
+                <div class="hex-content" id="hex-content">
+                    <!-- Generated hex rows will go here -->
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Footer -->
+    <div class="footer">
+        <div class="position-info">
+            <div>Offset: 0x431b4e4</div>
+            <div>Decimal: 70328548</div>
+        </div>
+        <div class="command">
+            <input type="text" class="command-input" placeholder="Enter command...">
+        </div>
+    </div>
+    
+    <!-- Context Menu -->
+    <div class="context-menu" id="context-menu">
+        <ul>
+            <li><span class="context-menu-icon">✏️</span> Edit Value</li>
+            <li><span class="context-menu-icon">📋</span> Copy Hex</li>
+            <li><span class="context-menu-icon">📌</span> Set Bookmark</li>
+            <li><span class="context-menu-icon">🔍</span> Find References</li>
+            <li><span class="context-menu-icon">⚡</span> Jump to Offset</li>
+        </ul>
+    </div>
+    
+    <!-- Status Message -->
+    <div class="status-message" id="status-message">Value written successfully</div>
+    
+    <script>
+        // Wait for everything to load
+        document.addEventListener('DOMContentLoaded', function() {
+            // Simulate loading progress
+            const progressBar = document.querySelector('.progress-bar');
+            const progressPercent = document.querySelector('.progress-percent');
+            
+            let progress = 0;
+            const progressInterval = setInterval(() => {
+                progress += 1;
+                if (progress <= 100) {
+                    progressPercent.textContent = progress + '%';
+                }
+                if (progress >= 100) {
+                    clearInterval(progressInterval);
+                    
+                    // Show status message after loading
+                    setTimeout(() => {
+                        const statusMessage = document.getElementById('status-message');
+                        statusMessage.classList.add('show');
+                        
+                        setTimeout(() => {
+                            statusMessage.classList.remove('show');
+                        }, 3000);
+                    }, 3000);
+                }
+            }, 20);
+            
+            // Create binary rain effect
+            createBinaryRain();
+            
+            // Generate hex content
+            generateHexContent();
+            
+            // Set up context menu
+            setupContextMenu();
+        });
+        
+        function createBinaryRain() {
+            const container = document.getElementById('binary-rain');
+            const width = window.innerWidth;
+            
+            for (let i = 0; i < 50; i++) {
+                const column = document.createElement('div');
+                column.className = 'binary-column';
+                column.style.left = Math.random() * width + 'px';
+                column.style.animationDuration = (Math.random() * 20 + 10) + 's';
+                
+                // Create binary content
+                let binaryContent = '';
+                for (let j = 0; j < 30; j++) {
+                    binaryContent += Math.random() > 0.5 ? '1' : '0';
+                    binaryContent += '<br>';
+                }
+                column.innerHTML = binaryContent;
+                
+                container.appendChild(column);
+            }
+        }
+        
+        function generateHexContent() {
+            const hexContent = document.getElementById('hex-content');
+            
+            // Sample hex data (based on the screenshot)
+            const hexData = [
+                { addr: '00000000', bytes: ['7F', '45', '4C', '46', '02', '01', '01', '00', '00', '00', '00', '00', '00', '00', '00', '00'], ascii: '.ELF............' },
+                { addr: '00000010', bytes: ['03', '00', 'B7', '00', '01', '00', '00', '00', '84', '65', '19', '02', '00', '00', '00', '00'], ascii: '........e.......' },
+                { addr: '00000020', bytes: ['40', '00', '00', '00', '00', '00', '00', '00', 'E0', '34', 'D2', '05', '00', '00', '00', '00'], ascii: '@........4......' },
+                { addr: '00000030', bytes: ['00', '00', '00', '00', '40', '00', '38', '00', '09', '00', '40', '00', '19', '00', '18', '00'], ascii: '....@.8...@.....' },
+                { addr: '00000040', bytes: ['06', '00', '00', '00', '04', '00', '00', '00', '40', '00', '00', '00', '00', '00', '00', '00'], ascii: '........@.......' },
+                { addr: '00000050', bytes: ['40', '00', '00', '00', '00', '00', '00', '00', '40', '00', '00', '00', '00', '00', '00', '00'], ascii: '@.......@.......' },
+                { addr: '00000060', bytes: ['30', '02', '00', '00', '00', '00', '00', '00', '30', '02', '00', '00', '00', '00', '00', '00'], ascii: '0.......0.......' },
+                { addr: '00000070', bytes: ['08', '00', '00', '00', '00', '00', '00', '00', '01', '00', '00', '00', '04', '00', '00', '00'], ascii: '................' },
+                { addr: '00000080', bytes: ['00', '00', '00', '00', '00', '00', '00', '00', '00', '00', '00', '00', '00', '00', '00', '00'], ascii: '................' },
+                { addr: '00000090', bytes: ['00', '00', '00', '00', '00', '00', '00', '00', '84', '65', '19', '02', '00', '00', '00', '00'], ascii: '........e.......' },
+                { addr: '000000A0', bytes: ['84', '65', '19', '02', '00', '00', '00', '00', '00', '10', '00', '00', '00', '00', '00', '00'], ascii: '.e..............' },
+                { addr: '000000B0', bytes: ['01', '00', '00', '00', '05', '00', '00', '00', '84', '65', '19', '02', '00', '00', '00', '00'], ascii: '........e.......' },
+                { addr: '000000C0', bytes: ['84', '75', '19', '02', '00', '00', '00', '00', '84', '75', '19', '02', '00', '00', '00', '00'], ascii: '.u.......u......' },
+                { addr: '000000D0', bytes: ['8C', '44', '03', '00', '00', '00', '00', '00', '8C', '44', '03', '00', '00', '00', '00', '00'], ascii: '.D.......D......' },
+                { addr: '000000E0', bytes: ['00', '10', '00', '00', '00', '00', '00', '00', '01', '00', '00', '00', '06', '00', '00', '00'], ascii: '................' },
+                { addr: '000000F0', bytes: ['10', 'B5', '5D', '05', '00', '00', '00', '00', '10', 'C5', '65', '05', '00', '00', '00', '00'], ascii: '..].......e.....' }
+            ];
+            
+            // Generate rows
+            hexData.forEach(row => {
+                const rowElement = document.createElement('div');
+                rowElement.className = 'hex-row';
+                
+                // Address
+                const addrElement = document.createElement('div');
+                addrElement.className = 'address';
+                addrElement.textContent = row.addr + ':';
+                rowElement.appendChild(addrElement);
+                
+                // Hex bytes
+                const bytesElement = document.createElement('div');
+                bytesElement.className = 'hex-bytes';
+                row.bytes.forEach(byte => {
+                    const byteSpan = document.createElement('span');
+                    byteSpan.className = 'hex-byte';
+                    byteSpan.textContent = byte;
+                    bytesElement.appendChild(byteSpan);
+                    
+                    // Add space after each byte
+                    bytesElement.appendChild(document.createTextNode(' '));
+                });
+                rowElement.appendChild(bytesElement);
+                
+                // ASCII representation
+                const asciiElement = document.createElement('div');
+                asciiElement.className = 'ascii';
+                asciiElement.textContent = row.ascii;
+                rowElement.appendChild(asciiElement);
+                
+                hexContent.appendChild(rowElement);
+            });
+            
+            // Add animation delay to rows
+            const rows = document.querySelectorAll('.hex-row');
+            rows.forEach((row, index) => {
+                row.style.opacity = '0';
+                setTimeout(() => {
+                    row.style.opacity = '1';
+                    row.style.transition = 'opacity 0.2s ease-in';
+                }, 2500 + index * 50);
+            });
+            
+            // Add 'edited' status to a random byte for effect
+            setTimeout(() => {
+                const randomIndex = Math.floor(Math.random() * document.querySelectorAll('.hex-byte').length);
+                const randomByte = document.querySelectorAll('.hex-byte')[randomIndex];
+                randomByte.classList.add('modified');
+                randomByte.classList.add('active');
+            }, 4000);
+        }
+        
+        function setupContextMenu() {
+            const contextMenu = document.getElementById('context-menu');
+            const hexBytes = document.querySelectorAll('.hex-byte');
+            
+            // Show context menu on right-click
+            hexBytes.forEach(byte => {
+                byte.addEventListener('contextmenu', (event) => {
+                    event.preventDefault();
+                    
+                    // Position the menu
+                    contextMenu.style.top = `${event.clientY}px`;
+                    contextMenu.style.left = `${event.clientX}px`;
+                    contextMenu.style.display = 'block';
+                    
+                    // Clear any active byte
+                    document.querySelectorAll('.hex-byte.active').forEach(b => b.classList.remove('active'));
+                    
+                    // Set this byte as active
+                    byte.classList.add('active');
+                });
+            });
+            
+            // Hide context menu when clicking elsewhere
+            document.addEventListener('click', () => {
+                contextMenu.style.display = 'none';
+            });
+            
+            // Context menu items functionality
+            contextMenu.querySelectorAll('li').forEach(item => {
+                item.addEventListener('click', () => {
+                    // Just for demonstration - show status message
+                    const statusMessage = document.getElementById('status-message');
+                    statusMessage.textContent = item.textContent + ' action performed';
+                    statusMessage.classList.add('show');
+                    
+                    setTimeout(() => {
+                        statusMessage.classList.remove('show');
+                    }, 2000);
+                    
+                    contextMenu.style.display = 'none';
+                });
+            });
+        }
+    </script>
+</body>
+</html>
